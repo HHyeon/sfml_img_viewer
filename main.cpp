@@ -6,29 +6,55 @@ using namespace sf;
 
 Texture t2[4];
 Sprite s[4];
-bool loaded[5];
+bool loaded[4];
+int index=0;
 
 string fnames[4] = {
+   "99.jpg",
    "tyuleniy_oli_2016097_lrg.jpg",
-   "tyuleniy_oli_2016097_lrg.jpg",
-   "tyuleniy_oli_2016097_lrg.jpg",
+   "99.jpg",
    "tyuleniy_oli_2016097_lrg.jpg",
 };
 
+float zoomrange[20] = {
+   1.0,
+   1.2,
+   1.4,
+   1.7,
+   2.0,
+
+   2.4,
+   2.9,
+   3.4,
+   4.0,
+   4.7,
+
+   5.5,
+   6.0,
+   7.0,
+   9.0,
+   10.0
+};
 
 RenderWindow window(VideoMode(1600,900),"highresimageviewer", Style::Default);
 
 void runner()
 {
-   for(int i=0;i<4;i++)
+   while(window.isOpen())
    {
-      t2[i].loadFromFile(fnames[i]);
-      loaded[i] = true;
-      s[i].setTexture(t2[i]);
-      s[i].setOrigin(0,0);
-      s[i].setPosition(0,0);
+      for(int i=0;i<4;i++)
+      {
+         if(!loaded[i])
+         {
+            t2[i].loadFromFile(fnames[i]);
+            loaded[i] = true;
+            s[i].setTexture(t2[i]);
+            s[i].setOrigin(t2[i].getSize().x/2-window.getSize().x/2,t2[i].getSize().y/2-window.getSize().y/2);
+            s[i].setPosition(0,0);
 
-      cout << i  << " loaded "<< endl;
+            cout << i  << " loaded "<< endl;
+         }
+      }
    }
 }
 
@@ -40,7 +66,7 @@ int main()
    int dx=0,dy=0;
    int currx=0,curry=0;
    bool moving = false;
-   float zoomlevel=10.0;
+   int zoomlevel=1;
 
    View view(FloatRect(0,0,window.getSize().x,window.getSize().y));
    view.setCenter(Vector2f(0,0));
@@ -52,6 +78,9 @@ int main()
 
    Thread imgdynamicloadrunner(runner);
    imgdynamicloadrunner.launch();
+
+
+   bool next = true;
 
    Event e;
    while(window.isOpen())
@@ -76,6 +105,12 @@ int main()
             }
             else if(e.key.code == Keyboard::Space)
             {
+               if(loaded[index])
+               {
+                  loaded[index] = false;
+                  index++;
+                  if(index>3)index=0;
+               }
             }
             break;
          case Event::MouseButtonPressed:
@@ -99,11 +134,14 @@ int main()
          case Event::MouseWheelMoved:
             if(e.mouseWheel.delta<0)
             {
-               if(zoomlevel<10.0) zoomlevel*=1.1;
+               zoomlevel++;
+               if(zoomlevel>=20)
+                  zoomlevel=19;
             }
             else
             {
-               if(zoomlevel>0.5) zoomlevel*=0.9;
+               if(zoomlevel>0)
+                  zoomlevel--;
             }
             break;
          }
@@ -111,33 +149,30 @@ int main()
 
       if(moving)
       {
-         dx = (sx - Mouse::getPosition().x)*zoomlevel + (currx);
-         dy = (sy - Mouse::getPosition().y)*zoomlevel + (curry);
+         dx = (sx - Mouse::getPosition().x)*zoomrange[zoomlevel] + (currx);
+         dy = (sy - Mouse::getPosition().y)*zoomrange[zoomlevel] + (curry);
       }
 
-      cout << dx << ", " << dy << endl;
+//      cout << dx << ", " << dy << endl;
 
       window.clear();
 
       View v = window.getDefaultView();
       v.setSize(winsizechangedwid,winsizechangedhei);
-      v.zoom(zoomlevel);
+      v.zoom(zoomrange[zoomlevel]);
       v.move(Vector2f(dx,dy));
       window.setView(v);
 
-      for(int i=0;i<4;i++)
+      if(loaded[index])
       {
-         if(loaded[i])
-         {
-            s[i].setOrigin(0,0);
-            s[i].setPosition((i%2)*t2[i].getSize().x, (i/2)*t2[i].getSize().y);
-            window.draw(s[i]);
-         }
+         window.draw(s[index]);
       }
+
 
       window.display();
    }
 
+   imgdynamicloadrunner.wait();
 
    return 0;
 }
