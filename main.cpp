@@ -4,31 +4,52 @@
 using namespace std;
 using namespace sf;
 
-Texture t2[4];
-Sprite s[4];
-bool loaded[5];
+RenderWindow window(VideoMode(1600,900),"highresimageviewer", Style::Default);
+
+Texture texture[4];
+Sprite sprite[4];
+bool loaded[4];
+int index=0;
+
+float zoomrange[20] = {
+   1.0,
+   1.1,
+   1.2,
+   1.3,
+   1.4,
+
+   2.0,
+   2.5,
+   3.0,
+   4.0,
+   5.0,
+};
 
 string fnames[4] = {
+   "99.jpg",
    "tyuleniy_oli_2016097_lrg.jpg",
-   "tyuleniy_oli_2016097_lrg.jpg",
-   "tyuleniy_oli_2016097_lrg.jpg",
+   "99.jpg",
    "tyuleniy_oli_2016097_lrg.jpg",
 };
 
 
-RenderWindow window(VideoMode(1600,900),"highresimageviewer", Style::Default);
-
 void runner()
 {
-   for(int i=0;i<4;i++)
+   while(window.isOpen())
    {
-      t2[i].loadFromFile(fnames[i]);
-      loaded[i] = true;
-      s[i].setTexture(t2[i]);
-      s[i].setOrigin(0,0);
-      s[i].setPosition(0,0);
+      for(int i=0;i<4;i++)
+      {
+         if(!loaded[i])
+         {
+            texture[i].loadFromFile(fnames[i]);
+            loaded[i] = true;
+            sprite[i].setTexture(texture[i]);
+            sprite[i].setOrigin(texture[i].getSize().x/2-window.getSize().x/2,texture[i].getSize().y/2-window.getSize().y/2);
+            sprite[i].setPosition(0,0);
 
-      cout << i  << " loaded "<< endl;
+            cout << i  << " loaded "<< endl;
+         }
+      }
    }
 }
 
@@ -40,11 +61,11 @@ int main()
    int dx=0,dy=0;
    int currx=0,curry=0;
    bool moving = false;
-   float zoomlevel=10.0;
+   int zoomlevel=0;
 
    View view(FloatRect(0,0,window.getSize().x,window.getSize().y));
    view.setCenter(Vector2f(0,0));
-   view.zoom(zoomlevel);
+   view.zoom(zoomrange[zoomlevel]);
    window.setView(view);
 
    int winsizechangedwid=window.getSize().x;
@@ -76,6 +97,12 @@ int main()
             }
             else if(e.key.code == Keyboard::Space)
             {
+               if(loaded[index])
+               {
+                  loaded[index] = false;
+                  index++;
+                  if(index>3)index=0;
+               }
             }
             break;
          case Event::MouseButtonPressed:
@@ -99,11 +126,14 @@ int main()
          case Event::MouseWheelMoved:
             if(e.mouseWheel.delta<0)
             {
-               if(zoomlevel<10.0) zoomlevel*=1.1;
+               zoomlevel++;
+               if(zoomlevel>=10)
+                  zoomlevel=9;
             }
             else
             {
-               if(zoomlevel>0.5) zoomlevel*=0.9;
+               if(zoomlevel>0)
+                  zoomlevel--;
             }
             break;
          }
@@ -111,33 +141,29 @@ int main()
 
       if(moving)
       {
-         dx = (sx - Mouse::getPosition().x)*zoomlevel + (currx);
-         dy = (sy - Mouse::getPosition().y)*zoomlevel + (curry);
+         dx = (sx - Mouse::getPosition().x)*zoomrange[zoomlevel] + (currx);
+         dy = (sy - Mouse::getPosition().y)*zoomrange[zoomlevel] + (curry);
       }
 
-      cout << dx << ", " << dy << endl;
+      cout << dx - ((int)texture[index].getSize().x/2) + (int)texture[index].getSize().x - ((int)window.getSize().x/2)*zoomrange[zoomlevel] << ", " <<
+              dy - ((int)texture[index].getSize().y/2) + (int)texture[index].getSize().y - ((int)window.getSize().y/2)*zoomrange[zoomlevel] << endl;
 
       window.clear();
-
       View v = window.getDefaultView();
       v.setSize(winsizechangedwid,winsizechangedhei);
-      v.zoom(zoomlevel);
+      v.zoom(zoomrange[zoomlevel]);
       v.move(Vector2f(dx,dy));
       window.setView(v);
 
-      for(int i=0;i<4;i++)
+      if(loaded[index])
       {
-         if(loaded[i])
-         {
-            s[i].setOrigin(0,0);
-            s[i].setPosition((i%2)*t2[i].getSize().x, (i/2)*t2[i].getSize().y);
-            window.draw(s[i]);
-         }
+         window.draw(sprite[index]);
       }
 
       window.display();
    }
 
+   imgdynamicloadrunner.wait();
 
    return 0;
 }
