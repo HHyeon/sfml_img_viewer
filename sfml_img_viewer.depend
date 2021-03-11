@@ -1,6 +1,8 @@
 # depslib dependency file v1.0
-1615436281 source:c:\users\hyeon-desk\documents\cdbl_work\sfml_img_viewer\main.cpp
+1615452556 source:c:\users\hyeon-desk\documents\cdbl_work\sfml_img_viewer\main.cpp
 	<iostream>
+	<sstream>
+	<dirent.h>
 	<SFML/Graphics.hpp>
 
 1615379679 source:c:\users\hyeon-desktop\documents\cdbl_workspace\sfml_img_viewer\main.cpp
