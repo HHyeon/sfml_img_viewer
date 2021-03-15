@@ -6,13 +6,12 @@
 using namespace std;
 using namespace sf;
 
-#define WIDTH 800
-#define HEIGHT 600
+#define WIDTH 1600
+#define HEIGHT 900
 
 RenderWindow window(VideoMode(WIDTH,HEIGHT),"highresimageviewer", Style::Default);
 
-#define IMGQUEUESIZ 6
-
+#define IMGQUEUESIZ 4
 string imgtitle[IMGQUEUESIZ];
 Texture texture[IMGQUEUESIZ];
 Sprite sprite[IMGQUEUESIZ];
@@ -21,27 +20,8 @@ int index=0;
 
 Mutex mutex;
 
-
-#define zoomindexmax 10
-float zoomrange[zoomindexmax] = {
-//   0.5,
-//   0.6,
-//   0.7,
-//   0.8,
-//   0.9,
-
-   1.0,
-   1.1,
-   1.2,
-   1.3,
-   1.4,
-
-   1.9,
-   2.5,
-   3.0,
-   4.0,
-   5.0,
-};
+#define zoommin 1.0
+#define zoommax 5
 
 vector<string> file_list;
 
@@ -54,7 +34,8 @@ void runner()
       {
          if(!loaded[i])
          {
-            cout << "load " << imgindex << " - " << file_list[imgindex] << endl;
+//            mutex.lock();
+//            mutex.unlock();
 
             loaded[i] = true;
             imgtitle[i] = file_list[imgindex];
@@ -64,6 +45,8 @@ void runner()
             sprite[i].setTexture(texture[i]);
             sprite[i].setOrigin(texture[i].getSize().x/2-window.getSize().x/2,texture[i].getSize().y/2-window.getSize().y/2);
             sprite[i].setPosition(0,0);
+
+            cout << "load " << imgindex << " - " << file_list[imgindex] << endl;
 
             imgindex++;
             if(imgindex >= (int)file_list.size())
@@ -76,6 +59,19 @@ void runner()
       sleep(milliseconds(100));
    }
    cout << "load runner terminated\n";
+}
+
+void nextpicture()
+{
+   if(loaded[index])
+   {
+      loaded[index] = false;
+      index++;
+      if(index>IMGQUEUESIZ-1)index=0;
+//      mutex.lock();
+      cout << imgtitle[index] << endl;
+//      mutex.unlock();
+   }
 }
 
 int main()
@@ -101,13 +97,13 @@ int main()
       return 1;
    }
 
-   window.setVerticalSyncEnabled(true);
+   window.setFramerateLimit(30);
 
    int sx=0,sy=0;
    int dx=0,dy=0;
    int currx=0,curry=0;
    bool moving = false;
-   int zoomlevel=0;
+   double zoomlevel=zoommin;
 
    Font font;
    font.loadFromFile("AdobeGothicStd-Bold.otf");
@@ -151,14 +147,7 @@ int main()
             }
             else if(e.key.code == Keyboard::Space)
             {
-               mutex.lock();
-               if(loaded[index])
-               {
-                  loaded[index] = false;
-                  index++;
-                  if(index>IMGQUEUESIZ-1)index=0;
-               }
-               mutex.unlock();
+               nextpicture();
             }
             break;
          case Event::MouseButtonPressed:
@@ -167,6 +156,14 @@ int main()
                moving=true;
                sx = Mouse::getPosition().x;
                sy = Mouse::getPosition().y;
+            }
+            else if(e.mouseButton.button == Mouse::Middle)
+            {
+               window.close();
+            }
+            else if(e.mouseButton.button == Mouse::Right)
+            {
+               nextpicture();
             }
             break;
 
@@ -182,14 +179,13 @@ int main()
          case Event::MouseWheelMoved:
             if(e.mouseWheel.delta<0)
             {
-               zoomlevel++;
-               if(zoomlevel>=zoomindexmax)
-                  zoomlevel=zoomindexmax-1;
+               zoomlevel*=1.1;
+               if(zoomlevel > zoommax) zoomlevel = zoommax;
             }
             else
             {
-               if(zoomlevel>0)
-                  zoomlevel--;
+               zoomlevel*=0.9;
+               if(zoomlevel < zoommin) zoomlevel = zoommin;
             }
             break;
          }
@@ -197,15 +193,14 @@ int main()
 
       if(moving)
       {
-         dx = (sx - Mouse::getPosition().x)*zoomrange[zoomlevel] + (currx);
-         dy = (sy - Mouse::getPosition().y)*zoomrange[zoomlevel] + (curry);
+         dx = (sx - Mouse::getPosition().x)*zoomlevel + (currx);
+         dy = (sy - Mouse::getPosition().y)*zoomlevel + (curry);
       }
 
-//      int picpos_win_relative_x = dx - ((int)texture[index].getSize().x/2) + (int)texture[index].getSize().x - ((int)window.getSize().x/2)*zoomrange[zoomlevel] ;
-//      int picpos_win_relative_y = dy - ((int)texture[index].getSize().y/2) + (int)texture[index].getSize().y - ((int)window.getSize().y/2)*zoomrange[zoomlevel] ;
-//      cout << picpos_win_relative_x << ", " << picpos_win_relative_y << endl;
-//      cout << texture[index].getSize().x/zoomrange[zoomlevel] << ", " << texture[index].getSize().y/zoomrange[zoomlevel] << endl;
-
+      int picpos_win_relative_x = dx - ((int)texture[index].getSize().x/2) + (int)texture[index].getSize().x - ((int)window.getSize().x/2)*zoomlevel ;
+      int picpos_win_relative_y = dy - ((int)texture[index].getSize().y/2) + (int)texture[index].getSize().y - ((int)window.getSize().y/2)*zoomlevel ;
+      cout << picpos_win_relative_x << ", " << picpos_win_relative_y << endl;
+//      cout << texture[index].getSize().x/zoomlevel << ", " << texture[index].getSize().y/zoomlevel << endl;
 
       window.clear(Color::Black);
 
@@ -213,7 +208,7 @@ int main()
       {
          View imgview = window.getDefaultView();
          imgview.setSize(winsizechangedwid,winsizechangedhei);
-         imgview.zoom(zoomrange[zoomlevel]);
+         imgview.zoom(zoomlevel);
          imgview.move(Vector2f(dx,dy));
          window.setView(imgview);
          window.draw(sprite[index]);
@@ -221,12 +216,14 @@ int main()
          imgview = window.getDefaultView();
          imgview.setSize(winsizechangedwid,winsizechangedhei);
          window.setView(imgview);
+
+
          titletext.setString(imgtitle[index]);
          titletext.setPosition(WIDTH/2 - (int)window.getSize().x/2 + 10, HEIGHT/2 - (int)window.getSize().y/2 + 10);
          window.draw(titletext);
 
          stringstream ss;
-         ss << zoomrange[zoomlevel];
+         ss << zoomlevel;
          zoomtext.setString(ss.str());
          zoomtext.setPosition(WIDTH/2 - (int)window.getSize().x/2 + 10, HEIGHT/2 - (int)window.getSize().y/2 + 50);
          window.draw(zoomtext);

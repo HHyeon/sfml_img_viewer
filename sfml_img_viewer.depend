@@ -5,7 +5,9 @@
 	<dirent.h>
 	<SFML/Graphics.hpp>
 
-1615379679 source:c:\users\hyeon-desktop\documents\cdbl_workspace\sfml_img_viewer\main.cpp
+1615646764 source:c:\users\hyeon-desktop\documents\cdbl_workspace\sfml_img_viewer\main.cpp
 	<iostream>
+	<sstream>
+	<dirent.h>
 	<SFML/Graphics.hpp>
 
